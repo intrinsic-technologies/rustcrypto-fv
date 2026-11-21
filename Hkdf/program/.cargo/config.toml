@@ -1,0 +1,12 @@
+# Required by ci/crates.py check: bare-metal x86-64 at the x86-64-v1 baseline that lean-x86
+# models (LLVM's `x86-64` CPU), without a C library; compiler_builtins provides memcpy and memset.
+# Add flags that pin the crate's backend here; scripts/extract.py appends path remapping to
+# [build] rustflags, so do not use [target.*] rustflags.
+#
+# No backend flags: on `x86_64-unknown-none`, `cpufeatures` 0.3.1 answers `false` without CPUID,
+# so `sha1` 0.11.0 selects no SHA-NI path and `sha2` 0.11.1 no SHA-NI path for SHA-256 and no AVX2
+# path for SHA-384 and SHA-512, and their portable compression functions run; `hkdf` and `hmac`
+# have no backends.
+[build]
+target = "x86_64-unknown-none"
+rustflags = ["-C", "target-cpu=x86-64", "-C", "relocation-model=static"]

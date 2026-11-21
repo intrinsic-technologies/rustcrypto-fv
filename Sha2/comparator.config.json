@@ -1,0 +1,24 @@
+{
+  "challenge_module": "Sha2.Statements",
+  "solution_module": "Sha2.Proofs",
+  "theorem_names": [
+    "Sha2.Statements.sha224_digest_writes_sha224_of_data",
+    "Sha2.Statements.sha224_digest_slices_writes_sha224_of_message",
+    "Sha2.Statements.sha256_digest_writes_sha256_of_data",
+    "Sha2.Statements.sha256_digest_slices_writes_sha256_of_message",
+    "Sha2.Statements.sha384_digest_writes_sha384_of_data",
+    "Sha2.Statements.sha384_digest_slices_writes_sha384_of_message",
+    "Sha2.Statements.sha512_digest_writes_sha512_of_data",
+    "Sha2.Statements.sha512_digest_slices_writes_sha512_of_message",
+    "Sha2.Statements.sha512_224_digest_writes_sha512_224_of_data",
+    "Sha2.Statements.sha512_224_digest_slices_writes_sha512_224_of_message",
+    "Sha2.Statements.sha512_256_digest_writes_sha512_256_of_data",
+    "Sha2.Statements.sha512_256_digest_slices_writes_sha512_256_of_message"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

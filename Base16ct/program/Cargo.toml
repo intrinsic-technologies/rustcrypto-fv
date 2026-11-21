@@ -1,0 +1,19 @@
+[package]
+name = "base16ct-program"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Standalone package: not part of any enclosing Cargo workspace
+[workspace]
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+# No features: `alloc` adds only `encode_string` and `decode_vec`, which have no theorem
+base16ct = { version = "=1.0.0", default-features = false }
+
+# Cargo's default release profile, as downstream users build it, except that a panic aborts
+[profile.release]
+panic = "abort"

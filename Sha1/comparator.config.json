@@ -1,0 +1,14 @@
+{
+  "challenge_module": "Sha1.Statements",
+  "solution_module": "Sha1.Proofs",
+  "theorem_names": [
+    "Sha1.Statements.sha1_digest_writes_digest_of_input",
+    "Sha1.Statements.sha1_update_finalize_writes_digest_of_inputs"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

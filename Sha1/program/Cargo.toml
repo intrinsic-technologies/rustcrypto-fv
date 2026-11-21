@@ -1,0 +1,20 @@
+[package]
+name = "sha1-program"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Standalone package: not part of any enclosing Cargo workspace
+[workspace]
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+# Default features except `alloc`, which adds only `DynDigest`'s boxed methods; no entry point
+# calls them
+sha1 = { version = "=0.11.0", default-features = false, features = ["oid"] }
+
+# Cargo's default release profile, as downstream users build it, aborting on panic
+[profile.release]
+panic = "abort"

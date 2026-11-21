@@ -1,0 +1,16 @@
+# x86-extract configuration; scripts/extract.py supplies `elf` and `output`, and installs the
+# generated modules in the directory of `namespace`.
+namespace = "AesGcm.Spec.Program.Extracted"
+code_sections = [".text"]
+data_sections = [".rodata"]
+
+# Generated address definition name = exported symbol, one per wrapper function in src/lib.rs
+[entries]
+aes128gcmEncryptInoutDetached = "aes128gcm_encrypt_inout_detached"
+aes128gcmDecryptInoutDetached = "aes128gcm_decrypt_inout_detached"
+aes128gcmEncryptInPlace = "aes128gcm_encrypt_in_place"
+aes128gcmDecryptInPlace = "aes128gcm_decrypt_in_place"
+aes256gcmEncryptInoutDetached = "aes256gcm_encrypt_inout_detached"
+aes256gcmDecryptInoutDetached = "aes256gcm_decrypt_inout_detached"
+aes256gcmEncryptInPlace = "aes256gcm_encrypt_in_place"
+aes256gcmDecryptInPlace = "aes256gcm_decrypt_in_place"

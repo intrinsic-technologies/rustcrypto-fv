@@ -1,0 +1,9 @@
+# Required by ci/crates.py check: bare-metal x86-64 at the x86-64-v1 baseline that lean-x86
+# models (LLVM's `x86-64` CPU), without a C library; compiler_builtins provides memcpy and memset.
+# The two cfg flags pin the portable software backends of chacha20 and poly1305, so neither
+# dispatches at run time to AVX2 or SSE2 code. scripts/extract.py appends path remapping to
+# [build] rustflags, so do not use [target.*] rustflags.
+[build]
+target = "x86_64-unknown-none"
+rustflags = ["-C", "target-cpu=x86-64", "-C", "relocation-model=static",
+             "--cfg", "chacha20_backend=\"soft\"", "--cfg", "poly1305_backend=\"soft\""]

@@ -1,0 +1,17 @@
+# x86-extract configuration; scripts/extract.py supplies `elf` and `output`, and installs the
+# generated modules in the directory of `namespace`.
+namespace = "Base16ct.Spec.Program.Extracted"
+code_sections = [".text"]
+data_sections = []
+
+# Generated address definition name = exported symbol, one per wrapper function in src/lib.rs
+[entries]
+lower_encode = "base16ct_lower_encode"
+upper_encode = "base16ct_upper_encode"
+lower_encode_str = "base16ct_lower_encode_str"
+upper_encode_str = "base16ct_upper_encode_str"
+lower_decode = "base16ct_lower_decode"
+upper_decode = "base16ct_upper_decode"
+mixed_decode = "base16ct_mixed_decode"
+decoded_len = "base16ct_decoded_len"
+encoded_len = "base16ct_encoded_len"

@@ -1,0 +1,14 @@
+{
+  "challenge_module": "Hkdf.Statements",
+  "solution_module": "Hkdf.Proofs",
+  "theorem_names": [
+    "Hkdf.Statements.hkdf_sha256_extract_writes_prk_of_salt_and_ikm",
+    "Hkdf.Statements.hkdf_sha256_new_expand_writes_okm_or_rejects_length"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

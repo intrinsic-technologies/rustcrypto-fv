@@ -1,0 +1,14 @@
+# x86-extract configuration; scripts/extract.py supplies `elf` and `output`, and installs the
+# generated modules in the directory of `namespace`.
+namespace = "ChaCha20Poly1305.Spec.Program.Extracted"
+code_sections = [".text"]
+data_sections = [".rodata"]
+
+# Generated address definition name = exported symbol, one per wrapper function in src/lib.rs
+[entries]
+encryptInoutDetached = "chacha20poly1305_encrypt_inout_detached"
+decryptInoutDetached = "chacha20poly1305_decrypt_inout_detached"
+encrypt = "chacha20poly1305_encrypt"
+decrypt = "chacha20poly1305_decrypt"
+encryptInPlace = "chacha20poly1305_encrypt_in_place"
+decryptInPlace = "chacha20poly1305_decrypt_in_place"

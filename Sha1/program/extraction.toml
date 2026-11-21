@@ -1,0 +1,16 @@
+# x86-extract configuration; scripts/extract.py supplies `elf` and `output`, and installs the
+# generated modules in the directory of `namespace`.
+namespace = "Sha1.Spec.Program.Extracted"
+code_sections = [".text"]
+data_sections = [".rodata"]
+
+# Generated address definition name = exported symbol, one per wrapper function in src/lib.rs
+[entries]
+sha1Digest = "sha1_digest"
+sha1Compress = "sha1_compress"
+sha1UpdateFinalize = "sha1_update_finalize"
+sha1Reset = "sha1_reset"
+sha1FinalizeReset = "sha1_finalize_reset"
+sha1UpdateReset = "sha1_update_reset"
+sha1FinalizeIntoReset = "sha1_finalize_into_reset"
+sha1FinalizeFixedReset = "sha1_finalize_fixed_reset"

@@ -1,0 +1,55 @@
+import P256.Proofs.Scalar.Multiply.Input
+
+set_option autoImplicit false
+
+namespace P256.Proofs.Scalar.Multiply.Adapter
+
+open X86 X86.Machine X86.UserProcess X86Proofs P256.Proofs.CFG P256.Proofs.Lift
+  P256.Proofs.Refine Prelude P256.Proofs.Program P256.Spec.Program P256.Spec.Program.Routines
+open P256.Proofs.SecretKeyFromBytes.Scalar
+
+open Barrett
+
+variable [bindings : Bindings] {s t : RamState} {boundary : ReturnBoundary}
+
+theorem result_of_post (pre : BarrettPre s boundary)
+    (run : ∃ fuel, Advances boundary fuel s t) (ready : EntryReady Machine.fnCode t)
+    (post : Machine.Reduce.Post (activation s) [Barrett.outputRegion (activation s)] t)
+    (mxcsr : t.MXCSR = s.MXCSR) (fcw : t.FP87_Control = s.FP87_Control) :
+    CalleeResult s t boundary 32 112 := by
+  have frame : MemoryWriteFrame s t #v[registerRegion s .rdi 32, Stack.region s 112] := by
+    apply post.frame.memoryWriteFrame
+    intro a ha r hr
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hr
+    rcases hr with rfl | rfl
+    · intro hc
+      apply ha (Stack.region s 112) (by simp)
+      have hlow := stack_sub_toNat pre.stack (offset := 112) (by decide)
+      change (stackPtr s - 112).toNat = (stackPtr s).toNat-112 at hlow
+      change (stackPtr s - 112).toNat ≤ a ∧
+        a < (stackPtr s - 112).toNat + ((stackPtr s).toNat - (stackPtr s - 112).toNat) at hc
+      change (stackPtr s).toNat-112 ≤ a ∧
+        a < (stackPtr s).toNat-112+((stackPtr s).toNat+8-((stackPtr s).toNat-112))
+      rw [hlow] at hc
+      omega
+    · exact ha _ (by simp [Barrett.outputRegion, activation, registerRegion])
+  refine ⟨run, post.rip, Value.eq_bits post.rsp,
+    ⟨ready.ready.smrr, ready.ready.memoryType, pre.bindingsSupported.stringStride,
+      ready.ready.features.lzcnt⟩,
+    ready.ready.supported ready.sse, ?_, post.df, mxcsr, fcw, frame, ?_, post.frame.present⟩
+  · intro r hr
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hr
+    rcases hr with rfl | rfl | rfl | rfl | rfl | rfl
+    · exact Value.eq_bits (post.preserved 3 (by decide))
+    · exact Value.eq_bits (post.preserved 5 (by decide))
+    · exact Value.eq_bits (post.preserved 12 (by decide))
+    · exact Value.eq_bits (post.preserved 13 (by decide))
+    · exact Value.eq_bits (post.preserved 14 (by decide))
+    · exact Value.eq_bits (post.preserved 15 (by decide))
+  · intro a byte hb
+    rw [frame a]
+    · exact pre.loaded a byte hb
+    · intro region hr hc
+      exact pre.avoids region (by simpa using hr) a hc (.inl ⟨byte, hb⟩)
+
+end P256.Proofs.Scalar.Multiply.Adapter

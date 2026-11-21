@@ -1,0 +1,104 @@
+name: Extraction
+
+on:
+  workflow_dispatch:
+  # Path filters skip this workflow when no file it checks changed; within it, ci/crates.py
+  # selects the affected crates. Keep both lists equal to `python3 ci/crates.py paths extraction`.
+  pull_request:
+    paths:
+      - 'lakefile.lean'
+      - 'lake-manifest.json'
+      - 'lean-toolchain'
+      - 'ci/crates.py'
+      - 'ci/comparator.py'
+      - '.github/workflows/crates.yml'
+      - 'scripts/extract.py'
+      - 'scripts/layout.ld'
+      - 'ci/check-extraction.sh'
+      - '.github/workflows/extraction.yml'
+      - '*/program/**'
+      - '*/**/Extracted/**'
+  push:
+    branches: [main]
+    paths:
+      - 'lakefile.lean'
+      - 'lake-manifest.json'
+      - 'lean-toolchain'
+      - 'ci/crates.py'
+      - 'ci/comparator.py'
+      - '.github/workflows/crates.yml'
+      - 'scripts/extract.py'
+      - 'scripts/layout.ld'
+      - 'ci/check-extraction.sh'
+      - '.github/workflows/extraction.yml'
+      - '*/program/**'
+      - '*/**/Extracted/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extraction-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  crates:
+    uses: ./.github/workflows/crates.yml
+    with:
+      kind: extraction
+      require: program
+
+  extraction:
+    name: ${{ matrix.crate }} extraction matches the generator
+    needs: crates
+    if: needs.crates.outputs.matrix != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.crates.outputs.matrix) }}
+    runs-on:
+      - runs-on=${{ github.run_id }}-extraction-${{ matrix.crate }}/runner=16cpu-linux-x64
+    timeout-minutes: 30
+    env:
+      CRATE: ${{ matrix.crate }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.1.0
+
+      - name: Load dependency SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.LEAN_X86_DEPLOY_KEY }}
+            ${{ secrets.LEAN_X86_PROOFS_DEPLOY_KEY }}
+
+      - name: Set up Lean
+        uses: leanprover/lean-action@v1.6.0
+        with:
+          auto-config: "false"
+          build: "false"
+          test: "false"
+          use-mathlib-cache: "false"
+          use-github-cache: "false"
+
+      - name: Install pinned Rust toolchain
+        working-directory: ${{ matrix.crate }}/program
+        run: rustup toolchain install
+
+      - name: Install extraction tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes build-essential binutils
+
+      - name: Regenerate extractions and check for drift
+        run: bash ci/check-extraction.sh "$CRATE"
+
+  result:
+    name: Extraction result
+    if: always()
+    needs: [crates, extraction]
+    runs-on:
+      - runs-on=${{ github.run_id }}-result/runner=2cpu-linux-x64
+    timeout-minutes: 5
+    steps:
+      - run: '[[ "${{ contains(needs.*.result, ''failure'') || contains(needs.*.result, ''cancelled'') }}" == false ]]'

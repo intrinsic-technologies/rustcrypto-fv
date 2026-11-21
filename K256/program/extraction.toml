@@ -1,0 +1,23 @@
+# x86-extract configuration; scripts/extract.py supplies `elf` and `output`, and installs the
+# generated modules in the directory of `namespace`.
+namespace = "K256.Spec.Program.Extracted"
+code_sections = [".text"]
+data_sections = [".rodata"]
+
+# Generated address definition name = exported symbol, one per wrapper function in src/lib.rs
+[entries]
+signingKeyTrySign = "k256_signing_key_try_sign"
+verifyingKeyVerify = "k256_verifying_key_verify"
+verifyingKeyRecoverFromPrehash = "k256_verifying_key_recover_from_prehash"
+signatureFromDer = "k256_signature_from_der"
+signatureFromSlice = "k256_signature_from_slice"
+schnorrSignRaw = "k256_schnorr_sign_raw"
+schnorrVerifyRaw = "k256_schnorr_verify_raw"
+signingKeyGenerateFromRng = "k256_signing_key_generate_from_rng"
+secretKeyFromBytes = "k256_secret_key_from_bytes"
+secretKeyPublicKey = "k256_secret_key_public_key"
+publicKeyFromSec1Bytes = "k256_public_key_from_sec1_bytes"
+publicKeyToSec1Bytes = "k256_public_key_to_sec1_bytes"
+secretKeyFromSec1Der = "k256_secret_key_from_sec1_der"
+ecdhDiffieHellman = "k256_ecdh_diffie_hellman"
+projectivePointAdd = "k256_projective_point_add"

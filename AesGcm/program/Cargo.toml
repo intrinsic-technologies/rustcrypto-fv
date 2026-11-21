@@ -1,0 +1,18 @@
+[package]
+name = "aes_gcm-program"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Standalone package: not part of any enclosing Cargo workspace
+[workspace]
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+aes-gcm = { version = "=0.11.1", default-features = false, features = ["aes"] }
+
+# Cargo's default release profile, as downstream users build it, except that a panic aborts
+[profile.release]
+panic = "abort"

@@ -1,0 +1,17 @@
+# Required by ci/crates.py check: bare-metal x86-64 at the x86-64-v1 baseline that lean-x86
+# models (LLVM's `x86-64` CPU), without a C library; compiler_builtins provides memcpy and memset.
+# Add flags that pin the crate's backend here; scripts/extract.py appends path remapping to
+# [build] rustflags, so do not use [target.*] rustflags.
+#
+# `aes_backend="soft"` selects the `aes` crate's portable software backend (its default 64-bit
+# fixsliced implementation) and `polyval_backend="soft"` the `polyval` crate's portable software
+# backend under `ghash`: the AES-NI, VAES and CLMUL backends and their `cpufeatures` runtime
+# detection (CPUID) are not compiled in.
+[build]
+target = "x86_64-unknown-none"
+rustflags = [
+  "-C", "target-cpu=x86-64",
+  "-C", "relocation-model=static",
+  "--cfg", 'aes_backend="soft"',
+  "--cfg", 'polyval_backend="soft"',
+]

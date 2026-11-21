@@ -1,0 +1,23 @@
+[package]
+name = "k256-program"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Standalone package: not part of any enclosing Cargo workspace
+[workspace]
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+# k256's default build without `std` (`arithmetic`, `ecdsa`, `pkcs8`, `schnorr`) and without
+# `precomputed-tables`, plus `alloc` for the key encoder that returns a heap buffer
+# (`to_sec1_bytes`) and `ecdh` for `diffie_hellman`. `precomputed-tables`, a default, is off:
+# without it there is no lazily filled basepoint table, and `k · G` is computed as any other
+# `k · P` is. `critical-section`, which turns it back on, is off too.
+k256 = { version = "=0.14.0", default-features = false, features = ["alloc", "arithmetic", "ecdh", "ecdsa", "pkcs8", "schnorr"] }
+
+# Cargo's default release profile, as downstream users build it, except that a panic aborts
+[profile.release]
+panic = "abort"

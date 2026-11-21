@@ -1,0 +1,62 @@
+name: Select crates
+
+# Reusable: selects the crate matrix for one kind of check (see CHECKS in ci/crates.py). Pull
+# requests select the crates their changes affect, relative to the base branch; pushes to main
+# select those the push affects; manual and scheduled runs select every crate.
+on:
+  workflow_call:
+    inputs:
+      kind:
+        description: "Kind of check: build, extraction, or comparator"
+        type: string
+        required: true
+      require:
+        description: "Keep only crates with a `program` or with comparator `theorems`"
+        type: string
+        default: ""
+      direct-on-pull-request:
+        description: "On pull requests, leave out crates selected only because they import a changed crate or standard"
+        type: boolean
+        default: false
+    outputs:
+      matrix:
+        description: JSON include list with one entry per crate
+        value: ${{ jobs.select.outputs.matrix }}
+
+permissions:
+  contents: read
+
+jobs:
+  select:
+    name: Select crates
+    runs-on:
+      - runs-on=${{ github.run_id }}-select/runner=2cpu-linux-x64
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: select
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+          KIND: ${{ inputs.kind }}
+          REQUIRE: ${{ inputs.require }}
+          DIRECT: ${{ inputs.direct-on-pull-request }}
+        run: |
+          args=(--json --kind "$KIND")
+          if [[ "$EVENT" == pull_request ]]; then
+            args+=(--changed-since "origin/$BASE_REF")
+            if [[ "$DIRECT" == true ]]; then args+=(--direct); fi
+          elif [[ "$EVENT" == push && -n "$BEFORE" && ! "$BEFORE" =~ ^0+$ ]]; then
+            args+=(--changed-since "$BEFORE")
+          fi
+          if [[ -n "$REQUIRE" ]]; then args+=(--require "$REQUIRE"); fi
+          matrix=$(python3 ci/crates.py list "${args[@]}")
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "Selected: $matrix"

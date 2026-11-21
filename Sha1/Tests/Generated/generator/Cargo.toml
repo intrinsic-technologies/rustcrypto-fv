@@ -1,0 +1,15 @@
+# Generates ../crate_generated.txt by running the real `sha1` 0.11.0 with the portable backend the
+# wrappers pin, which `.cargo/config.toml` sets; run it from this directory with
+# `cargo run --release --locked > ../crate_generated.txt`.
+[package]
+name = "sha1-vector-generator"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Standalone package: not part of any enclosing Cargo workspace
+[workspace]
+
+[dependencies]
+# The features the wrappers build with: the default features except `alloc`
+sha1 = { version = "=0.11.0", default-features = false, features = ["oid"] }

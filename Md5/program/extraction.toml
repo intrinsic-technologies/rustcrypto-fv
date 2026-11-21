@@ -1,0 +1,18 @@
+# x86-extract configuration; scripts/extract.py supplies `elf` and `output`, and installs the
+# generated modules in the directory of `namespace`.
+namespace = "Md5.Spec.Program.Extracted"
+code_sections = [".text"]
+data_sections = [".rodata"]
+
+# Generated address definition name = exported symbol, one per wrapper function in src/lib.rs
+[entries]
+md5Digest = "md5_digest"
+md5DigestSlices = "md5_digest_slices"
+md5DigestSlicesReset = "md5_digest_slices_reset"
+md5UpdateFinalizeInto = "md5_update_finalize_into"
+md5FinalizeIntoResetSlices = "md5_finalize_into_reset_slices"
+md5FixedFinalizeIntoResetSlices = "md5_fixed_finalize_into_reset_slices"
+md5FinalizeFixedResetSlices = "md5_finalize_fixed_reset_slices"
+md5ResetSlices = "md5_reset_slices"
+md5UpdateResetSlices = "md5_update_reset_slices"
+md5Compress = "md5_compress"

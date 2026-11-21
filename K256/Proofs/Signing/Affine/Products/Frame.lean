@@ -1,0 +1,72 @@
+import K256.Proofs.Signing.Affine.State
+import K256.Proofs.Generate.Generator.Affine.Products.Frame
+import K256.Proofs.Generate.Generator.Affine.Memory
+
+namespace K256.Proofs.Signing.Affine
+
+open K256.Proofs.Generate.Generator.Affine
+open K256.Spec.Program Prelude X86.Machine X86.UserProcess X86Proofs K256.Proofs.CFG
+open K256.Proofs.Lift K256.Proofs.Refine K256.Proofs.Common.Field K256.Proofs.Generate.LIR
+
+theorem coordinatesAfterProductScratch {m n : Ram} {fr : Activation} {rs : List MemoryRegion}
+    {x y z : Fin modulus} (h : Coordinates m fr.rsi x y z) (f : RamWriteFrame m n rs)
+    (bounds : ProductScratch fr rs) (srcAbove : fr.rsp.toNat + 8 ≤ fr.rsi.toNat)
+    (source : Readable m fr.rsi 120) : Coordinates n fr.rsi x y z := by
+  apply h.of_frame f
+  refine ⟨by have := source.low; omega, fun r hr => Or.inr ?_⟩
+  have := (bounds r hr).2
+  omega
+
+theorem CallState.afterProductScratch {fr : Activation} {a b : Registers} {m n : Ram}
+    {rs : List MemoryRegion} {l l' : Label} (s : CallState l fr a m)
+    (before : Atom.All Extracted.programImage a m (Fn10fe50.frameAt .l10eda1 fr))
+    (target : Fn10fe50.frameAt l' fr = Fn10fe50.frameAt .l10eda1 fr)
+    (f : RamWriteFrame m n rs) (bounds : ProductScratch fr rs)
+    (kept : ∀ i : Fin Reg.count, i.val ∈ [4,22,3,14,39,50,51] → b[i] = a[i]) :
+    CallState l' fr b n := by
+  obtain ⟨sp, df, bx, r14, mx, ft, fc, s48, s40, s32, s24, s16, s8, read, ret, low,
+    win, room, align, _⟩ := before
+  change Writable Extracted.programImage m (fr.rsp - 976) 976 at win
+  change fr.low.toNat + 976 ≤ fr.rsp.toNat at room
+  have off {d : Nat} (hd : d ≤ 976) :
+      (fr.rsp - BitVec.ofNat 64 d).toNat = fr.rsp.toNat - d := by
+    have h : (BitVec.ofNat 64 d).toNat = d := Nat.mod_eq_of_lt (by omega)
+    rw [BitVec.toNat_sub_of_le (by change (BitVec.ofNat 64 d).toNat ≤ _; omega), h]
+  have high := s.source.low
+  have above := s.srcAbove
+  have same (d : Nat) (hd : d ≤ 48) :
+      memLoad n (fr.rsp - BitVec.ofNat 64 d) 64 = memLoad m (fr.rsp - BitVec.ofNat 64 d) 64 := by
+    apply f.memLoad_eq
+    refine ⟨?_, fun r hr => Or.inr ?_⟩ <;> rw [off (by omega : d ≤ 976)]
+    · omega
+    · have := (bounds r hr).2
+      omega
+  have same0 := same 0 (by decide)
+  change memLoad n (fr.rsp - 0) 64 = memLoad m (fr.rsp - 0) 64 at same0
+  rw [show fr.rsp - 0 = fr.rsp by bv_omega] at same0
+  refine ⟨?_, ?_, s.source.of_frame f, s.dest.of_frame f, s.srcAbove, s.dstAbove,
+    s.frame.trans f ?_⟩
+  · rw [Verify.Core.Affine.atomsAt, target]
+    exact ⟨(kept 4 (by decide)).trans sp, (kept 22 (by decide)).trans df,
+      (kept 3 (by decide)).trans bx, (kept 14 (by decide)).trans r14,
+      (kept 39 (by decide)).trans mx, (kept 50 (by decide)).trans ft, (kept 51 (by decide)).trans fc,
+      (same 48 (by decide)).trans s48, (same 40 (by decide)).trans s40,
+      (same 32 (by decide)).trans s32, (same 24 (by decide)).trans s24,
+      (same 16 (by decide)).trans s16, (same 8 (by decide)).trans s8,
+      Readable.of_frame read f, same0.trans ret,
+      low, win.of_frame f, room, align, trivial⟩
+  · apply scratch_image win _ s.image
+    refine (RamWriteFrame.refl _ _).trans f ?_
+    intro r hr
+    have := bounds r hr
+    refine ⟨scratch fr.rsp, List.mem_cons_self, ?_⟩
+    dsimp only [scratch]
+    rw [sub_toNat (by omega) 976 (by decide)]
+    change fr.rsp.toNat - 976 ≤ r.start ∧ r.start + r.size ≤ fr.rsp.toNat - 976 + 976
+    omega
+  · intro r hr
+    have := bounds r hr
+    exact ⟨fr.region, .head _, by change fr.low.toNat ≤ _; omega,
+      by change _ ≤ fr.low.toNat + (fr.rsp.toNat - fr.low.toNat); omega⟩
+
+end K256.Proofs.Signing.Affine

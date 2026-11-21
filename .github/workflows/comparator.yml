@@ -1,0 +1,223 @@
+name: Comparator
+
+# For each crate with comparator theorems: the challenge job builds the statement from the
+# specification alone, and the comparator job checks the proofs against that reference.
+
+on:
+  workflow_dispatch:
+  # Pull requests and pushes check only the crates their changes affect; a nightly run checks
+  # every crate, in case a change affected one that selection missed.
+  schedule:
+    - cron: '0 7 * * *'
+  # Path filters skip this workflow when no file it checks changed; within it, ci/crates.py
+  # selects the affected crates. Keep both lists equal to `python3 ci/crates.py paths comparator`.
+  pull_request:
+    paths:
+      - 'lakefile.lean'
+      - 'lake-manifest.json'
+      - 'lean-toolchain'
+      - 'ci/crates.py'
+      - 'ci/comparator.py'
+      - '.github/workflows/crates.yml'
+      - 'Standards.lean'
+      - 'Standards/**/*.lean'
+      - 'ci/setup-comparator.sh'
+      - 'ci/landrun.sh'
+      - 'ci/ClaimImports.lean'
+      - 'ci/check_spec_dependencies.py'
+      - 'ci/test_spec_dependencies.py'
+      - '.github/workflows/comparator.yml'
+      - '*/Spec.lean'
+      - '*/Spec/**'
+      - '*/Statements.lean'
+      - '*/Statements/**'
+      - '*/Proofs.lean'
+      - '*/Proofs/**'
+      - '*/comparator.config.json'
+      - '*/lakefile.lean'
+      - '*/lake-manifest.json'
+      - '*/lean-toolchain'
+  push:
+    branches: [main]
+    paths:
+      - 'lakefile.lean'
+      - 'lake-manifest.json'
+      - 'lean-toolchain'
+      - 'ci/crates.py'
+      - 'ci/comparator.py'
+      - '.github/workflows/crates.yml'
+      - 'Standards.lean'
+      - 'Standards/**/*.lean'
+      - 'ci/setup-comparator.sh'
+      - 'ci/landrun.sh'
+      - 'ci/ClaimImports.lean'
+      - 'ci/check_spec_dependencies.py'
+      - 'ci/test_spec_dependencies.py'
+      - '.github/workflows/comparator.yml'
+      - '*/Spec.lean'
+      - '*/Spec/**'
+      - '*/Statements.lean'
+      - '*/Statements/**'
+      - '*/Proofs.lean'
+      - '*/Proofs/**'
+      - '*/comparator.config.json'
+      - '*/lakefile.lean'
+      - '*/lake-manifest.json'
+      - '*/lean-toolchain'
+
+permissions:
+  contents: read
+
+# Each push to main checks only what it changed, so a later push must not cancel it: pull requests
+# leave crates importing a changed module to that run.
+concurrency:
+  group: comparator-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  crates:
+    uses: ./.github/workflows/crates.yml
+    with:
+      kind: comparator
+      require: theorems
+      # Pull requests check only the crates whose own files changed. A crate that only imports a
+      # changed crate or `Standards` module is still rebuilt by the Build workflow, and is checked
+      # by comparator on the push to main and nightly.
+      direct-on-pull-request: true
+
+  challenge:
+    name: Build isolated ${{ matrix.crate }} statement
+    needs: crates
+    if: needs.crates.outputs.matrix != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.crates.outputs.matrix) }}
+    runs-on:
+      - runs-on=${{ github.run_id }}-challenge-${{ matrix.crate }}/runner=16cpu-linux-x64/volume=80gb
+    timeout-minutes: 30
+    env:
+      CRATE: ${{ matrix.crate }}
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          persist-credentials: false
+
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.LEAN_X86_DEPLOY_KEY }}
+            ${{ secrets.LEAN_X86_PROOFS_DEPLOY_KEY }}
+
+      - uses: leanprover/lean-action@v1.6.0
+        with:
+          auto-config: "false"
+          build: "false"
+          test: "false"
+          use-mathlib-cache: "false"
+          use-github-cache: "false"
+
+      - uses: actions/setup-go@v5.6.0
+        with:
+          go-version: stable
+          cache: "false"
+
+      - name: Prepare dependency, tools, and sandbox
+        shell: bash
+        env:
+          PROJECT: ${{ matrix.project }}
+        run: bash ci/setup-comparator.sh
+
+      - name: Stage spec-only inputs
+        run: python3 ci/comparator.py stage "$CRATE"
+
+      - name: Delete checkout and build isolated statement
+        working-directory: ${{ runner.temp }}
+        run: |
+          rm -rf -- "$GITHUB_WORKSPACE"
+          python3 "$RUNNER_TEMP/challenge/comparator.py" build "$CRATE"
+
+      - name: Restore workspace directory for cleanup
+        if: always()
+        working-directory: ${{ runner.temp }}
+        run: mkdir -p "$GITHUB_WORKSPACE"
+
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: comparator-challenge-${{ matrix.crate }}
+          # upload-artifact rejects `.` path segments, so a root crate's project adds none
+          path: ${{ matrix.project == '.' && format('{0}/challenge/workspace/.lake/build', runner.temp) || format('{0}/challenge/workspace/{1}/.lake/build', runner.temp, matrix.project) }}
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  comparator:
+    name: Verify ${{ matrix.crate }} proofs with comparator
+    needs: [crates, challenge]
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.crates.outputs.matrix) }}
+    runs-on:
+      - runs-on=${{ github.run_id }}-comparator-${{ matrix.crate }}/runner=16cpu-linux-x64/cpu=32/family=r7a/ram=256/volume=160gb/spot=false
+    # The proof build and kernel check of the largest crates can take more than 120 minutes.
+    timeout-minutes: 180
+    env:
+      CRATE: ${{ matrix.crate }}
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          persist-credentials: false
+
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.LEAN_X86_DEPLOY_KEY }}
+            ${{ secrets.LEAN_X86_PROOFS_DEPLOY_KEY }}
+
+      - uses: leanprover/lean-action@v1.6.0
+        with:
+          auto-config: "false"
+          build: "false"
+          test: "false"
+          use-mathlib-cache: "false"
+          use-github-cache: "false"
+
+      - uses: actions/setup-go@v5.6.0
+        with:
+          go-version: stable
+          cache: "false"
+
+      - name: Prepare dependency, tools, and sandbox
+        shell: bash
+        env:
+          PROJECT: ${{ matrix.project }}
+          INSTALL_COMPARATOR: "true"
+        run: bash ci/setup-comparator.sh
+
+      - uses: actions/download-artifact@v4.3.0
+        with:
+          name: comparator-challenge-${{ matrix.crate }}
+          path: ${{ runner.temp }}/reference
+
+      - name: Check isolated reference and verify proofs
+        shell: bash
+        run: python3 ci/comparator.py verify "$CRATE" 2>&1 | tee comparator.log
+
+      - uses: actions/upload-artifact@v4.6.2
+        if: always()
+        with:
+          name: comparator-log-${{ matrix.crate }}
+          path: comparator.log
+          if-no-files-found: ignore
+          retention-days: 30
+
+  result:
+    name: Comparator result
+    if: always()
+    needs: [crates, challenge, comparator]
+    runs-on:
+      - runs-on=${{ github.run_id }}-result/runner=2cpu-linux-x64
+    timeout-minutes: 5
+    steps:
+      - run: '[[ "${{ contains(needs.*.result, ''failure'') || contains(needs.*.result, ''cancelled'') }}" == false ]]'

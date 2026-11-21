@@ -1,0 +1,21 @@
+{
+  "challenge_module": "Base16ct.Statements",
+  "solution_module": "Base16ct.Proofs",
+  "theorem_names": [
+    "Base16ct.Statements.base16ct_lower_encode_writes_lowercase_hex_or_rejects_short_buffer",
+    "Base16ct.Statements.base16ct_upper_encode_writes_uppercase_hex_or_rejects_short_buffer",
+    "Base16ct.Statements.base16ct_lower_decode_writes_decoded_bytes_or_rejects",
+    "Base16ct.Statements.base16ct_upper_decode_writes_decoded_bytes_or_rejects",
+    "Base16ct.Statements.base16ct_mixed_decode_writes_decoded_bytes_or_rejects",
+    "Base16ct.Statements.base16ct_lower_encode_str_writes_lowercase_hex_or_rejects_short_buffer",
+    "Base16ct.Statements.base16ct_upper_encode_str_writes_uppercase_hex_or_rejects_short_buffer",
+    "Base16ct.Statements.base16ct_decoded_len_writes_half_length_or_rejects_odd_length",
+    "Base16ct.Statements.base16ct_encoded_len_writes_twice_length"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

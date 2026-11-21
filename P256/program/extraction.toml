@@ -1,0 +1,25 @@
+# x86-extract configuration; scripts/extract.py supplies `elf` and `output`, and installs the
+# generated modules in the directory of `namespace`.
+namespace = "P256.Spec.Program.Extracted"
+code_sections = [".text"]
+data_sections = [".rodata"]
+
+# Generated address definition name = exported symbol, one per wrapper function
+[entries]
+# src/keys.rs
+secretKeyFromBytes = "p256_secret_key_from_bytes"
+secretKeyPublicKey = "p256_secret_key_public_key"
+publicKeyFromSec1Bytes = "p256_public_key_from_sec1_bytes"
+publicKeyToSec1Bytes = "p256_public_key_to_sec1_bytes"
+verifyingKeyFromPublicKeyDer = "p256_verifying_key_from_public_key_der"
+# src/points.rs
+projectivePointAdd = "p256_projective_point_add"
+# src/signatures.rs
+signingKeyTrySign = "p256_signing_key_try_sign"
+verifyingKeyVerify = "p256_verifying_key_verify"
+verifyingKeyRecoverFromMsg = "p256_verifying_key_recover_from_msg"
+signatureFromDer = "p256_signature_from_der"
+signatureFromSlice = "p256_signature_from_slice"
+# src/extras.rs
+signingKeyGenerateFromRng = "p256_signing_key_generate_from_rng"
+ecdhDiffieHellman = "p256_ecdh_diffie_hellman"

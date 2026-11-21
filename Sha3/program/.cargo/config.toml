@@ -1,0 +1,9 @@
+# Required by ci/crates.py check: bare-metal x86-64 at the x86-64-v1 baseline that lean-x86
+# models (LLVM's `x86-64` CPU), without a C library; compiler_builtins provides memcpy and memset.
+# `keccak_backend="soft"` pins keccak 0.2's portable `u64` permutation, its only x86-64 backend
+# without nightly SIMD. scripts/extract.py appends path remapping to [build] rustflags, so do not
+# use [target.*] rustflags.
+[build]
+target = "x86_64-unknown-none"
+rustflags = ["-C", "target-cpu=x86-64", "-C", "relocation-model=static",
+             "--cfg", "keccak_backend=\"soft\""]

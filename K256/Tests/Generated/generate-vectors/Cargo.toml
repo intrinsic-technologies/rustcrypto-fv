@@ -1,0 +1,12 @@
+[package]
+name = "generate-vectors"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Standalone package: not part of any enclosing Cargo workspace
+[workspace]
+
+[dependencies]
+# The features of K256/program, plus `std` on the host
+k256 = { version = "=0.14.0", default-features = false, features = ["alloc", "arithmetic", "ecdh", "ecdsa", "pkcs8", "schnorr", "std"] }

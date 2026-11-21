@@ -1,0 +1,28 @@
+{
+  "challenge_module": "Sha3.Statements",
+  "solution_module": "Sha3.Proofs",
+  "theorem_names": [
+    "Sha3.Statements.sha3_224_digest_writes_sha3_224_of_data",
+    "Sha3.Statements.sha3_224_digest_slices_writes_sha3_224_of_message",
+    "Sha3.Statements.sha3_256_digest_writes_sha3_256_of_data",
+    "Sha3.Statements.sha3_256_digest_slices_writes_sha3_256_of_message",
+    "Sha3.Statements.sha3_384_digest_writes_sha3_384_of_data",
+    "Sha3.Statements.sha3_384_digest_slices_writes_sha3_384_of_message",
+    "Sha3.Statements.sha3_512_digest_writes_sha3_512_of_data",
+    "Sha3.Statements.sha3_512_digest_slices_writes_sha3_512_of_message",
+    "Sha3.Statements.keccak224_digest_writes_keccak224_of_data",
+    "Sha3.Statements.keccak224_digest_slices_writes_keccak224_of_message",
+    "Sha3.Statements.keccak256_digest_writes_keccak256_of_data",
+    "Sha3.Statements.keccak256_digest_slices_writes_keccak256_of_message",
+    "Sha3.Statements.keccak384_digest_writes_keccak384_of_data",
+    "Sha3.Statements.keccak384_digest_slices_writes_keccak384_of_message",
+    "Sha3.Statements.keccak512_digest_writes_keccak512_of_data",
+    "Sha3.Statements.keccak512_digest_slices_writes_keccak512_of_message"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

@@ -1,0 +1,18 @@
+{
+  "challenge_module": "P256.Statements",
+  "solution_module": "P256.Proofs",
+  "theorem_names": [
+    "P256.Statements.p256_public_key_from_sec1_bytes_writes_public_key_or_rejects_encoding",
+    "P256.Statements.p256_signing_key_try_sign_writes_signature_or_never_returns",
+    "P256.Statements.p256_verifying_key_verify_accepts_signature_or_rejects_signature",
+    "P256.Statements.p256_signature_from_slice_writes_signature_or_rejects_bytes",
+    "P256.Statements.p256_signing_key_generate_from_rng_writes_signing_key",
+    "P256.Statements.p256_ecdh_diffie_hellman_writes_shared_secret"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

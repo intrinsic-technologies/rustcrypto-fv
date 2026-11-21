@@ -1,0 +1,18 @@
+[package]
+name = "sha3-program"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Standalone package: not part of any enclosing Cargo workspace
+[workspace]
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+sha3 = { version = "=0.12.0", default-features = false, features = ["oid"] }
+
+# Cargo's default release profile, as downstream users build it, aborting on panic
+[profile.release]
+panic = "abort"

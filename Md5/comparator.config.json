@@ -1,0 +1,22 @@
+{
+  "challenge_module": "Md5.Statements",
+  "solution_module": "Md5.Proofs",
+  "theorem_names": [
+    "Md5.Statements.md5_compress_writes_buffer_after_blocks",
+    "Md5.Statements.md5_digest_writes_message_digest",
+    "Md5.Statements.md5_digest_slices_writes_message_digest",
+    "Md5.Statements.md5_digest_slices_reset_writes_both_message_digests",
+    "Md5.Statements.md5_finalize_fixed_reset_slices_writes_both_message_digests",
+    "Md5.Statements.md5_update_finalize_into_writes_message_digest",
+    "Md5.Statements.md5_finalize_into_reset_slices_writes_both_message_digests",
+    "Md5.Statements.md5_fixed_finalize_into_reset_slices_writes_both_message_digests",
+    "Md5.Statements.md5_update_reset_slices_writes_second_message_digest",
+    "Md5.Statements.md5_reset_slices_writes_second_message_digest"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

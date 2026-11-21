@@ -1,0 +1,127 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  # Path filters skip this workflow when no file it checks changed; within it, ci/crates.py
+  # selects the affected crates. Keep both lists equal to `python3 ci/crates.py paths build`.
+  pull_request:
+    paths:
+      - 'lakefile.lean'
+      - 'lake-manifest.json'
+      - 'lean-toolchain'
+      - 'ci/crates.py'
+      - 'ci/comparator.py'
+      - '.github/workflows/crates.yml'
+      - 'ci/ClaimImports.lean'
+      - 'ci/check_spec_dependencies.py'
+      - 'ci/test_spec_dependencies.py'
+      - 'Standards.lean'
+      - 'Standards/**/*.lean'
+      - '.github/workflows/build.yml'
+      - '*/**/*.lean'
+      - '*/**/*.bin'
+      - '*/lakefile.lean'
+      - '*/lake-manifest.json'
+      - '*/lean-toolchain'
+  push:
+    branches: [main]
+    paths:
+      - 'lakefile.lean'
+      - 'lake-manifest.json'
+      - 'lean-toolchain'
+      - 'ci/crates.py'
+      - 'ci/comparator.py'
+      - '.github/workflows/crates.yml'
+      - 'ci/ClaimImports.lean'
+      - 'ci/check_spec_dependencies.py'
+      - 'ci/test_spec_dependencies.py'
+      - 'Standards.lean'
+      - 'Standards/**/*.lean'
+      - '.github/workflows/build.yml'
+      - '*/**/*.lean'
+      - '*/**/*.bin'
+      - '*/lakefile.lean'
+      - '*/lake-manifest.json'
+      - '*/lean-toolchain'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  crates:
+    uses: ./.github/workflows/crates.yml
+    with:
+      kind: build
+
+  build:
+    name: Build ${{ matrix.crate }}
+    needs: crates
+    if: needs.crates.outputs.matrix != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.crates.outputs.matrix) }}
+    runs-on:
+      - runs-on=${{ github.run_id }}-build-${{ matrix.crate }}/runner=16cpu-linux-x64/volume=80gb
+    timeout-minutes: 120
+    env:
+      CRATE: ${{ matrix.crate }}
+      # Where Lake runs: the repository root, or a standalone crate's own directory
+      PROJECT: ${{ matrix.project }}
+      # Lake's artifact cache (`enableArtifactCache` in lakefile.lean); see tests.yml
+      LAKE_CACHE_DIR: ${{ github.workspace }}/.lake-cache
+    steps:
+      - name: Load dependency SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.LEAN_X86_DEPLOY_KEY }}
+            ${{ secrets.LEAN_X86_PROOFS_DEPLOY_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v6.1.0
+
+      - name: Set up Lean
+        uses: leanprover/lean-action@v1.6.0
+        with:
+          auto-config: "false"
+          build: "false"
+          test: "false"
+          use-mathlib-cache: "false"
+          use-github-cache: "false"
+
+      # Restores the cache Tests saves on main: the root package's dependencies and `Standards`.
+      # This job does not save one, as a copy per crate would crowd it out. The key includes the
+      # crate's own pins, so for a standalone crate (every crate here) it matches no saved cache
+      # and the job builds its dependencies from scratch
+      - name: Restore Lake artifact cache
+        uses: actions/cache/restore@v4.2.3
+        with:
+          path: ${{ env.LAKE_CACHE_DIR }}
+          key: lake-tests-${{ hashFiles('lean-toolchain', 'lake-manifest.json', format('{0}/lean-toolchain', matrix.crate), format('{0}/lake-manifest.json', matrix.crate)) }}-${{ github.sha }}
+          restore-keys: lake-tests-${{ hashFiles('lean-toolchain', 'lake-manifest.json', format('{0}/lean-toolchain', matrix.crate), format('{0}/lake-manifest.json', matrix.crate)) }}-
+
+      - name: Build
+        working-directory: ${{ matrix.project }}
+        run: lake build "$CRATE"
+
+      - name: Check that every specification and statement module is independent of the proof library
+        run: |
+          python3 -m unittest discover -s ci -p 'test_spec_dependencies.py'
+          python3 ci/check_spec_dependencies.py "$CRATE"
+          (cd "$PROJECT" && lake env lean --run "$GITHUB_WORKSPACE/ci/ClaimImports.lean" "$CRATE.Spec" "$CRATE.Statements")
+
+  # A stable check name for branch protection, whichever crates were selected
+  result:
+    name: Build result
+    if: always()
+    needs: [crates, build]
+    runs-on:
+      - runs-on=${{ github.run_id }}-result/runner=2cpu-linux-x64
+    timeout-minutes: 5
+    steps:
+      - run: '[[ "${{ contains(needs.*.result, ''failure'') || contains(needs.*.result, ''cancelled'') }}" == false ]]'

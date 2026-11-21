@@ -1,0 +1,20 @@
+[package]
+name = "chacha20poly1305-program"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Standalone package: not part of any enclosing Cargo workspace
+[workspace]
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+# `alloc` for `Aead::encrypt` and `Aead::decrypt`; the default `getrandom` only adds key and nonce
+# generation, which has no theorem
+chacha20poly1305 = { version = "=0.11.0", default-features = false, features = ["alloc"] }
+
+# Cargo's default release profile, as downstream users build it, except that a panic aborts
+[profile.release]
+panic = "abort"

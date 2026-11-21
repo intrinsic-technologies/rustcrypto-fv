@@ -1,0 +1,11 @@
+# Bare-metal x86-64 at the x86-64-v1 baseline that lean-x86 models (LLVM's `x86-64` CPU), without a
+# C library. P-256's field and scalar arithmetic are p256's own portable code. The SHA-256 used by
+# ECDSA, RFC 6979 and hash-to-curve is forced to sha2's software backend. getrandom uses its
+# `custom` backend, which calls `__getrandom_v03_custom` in src/abi.rs. Keep flags in [build];
+# scripts/extract.py appends reproducible path remapping here.
+[build]
+target = "x86_64-unknown-none"
+rustflags = [
+  "-C", "target-cpu=x86-64", "-C", "relocation-model=static",
+  "--cfg", 'sha2_backend="soft"', "--cfg", 'getrandom_backend="custom"',
+]

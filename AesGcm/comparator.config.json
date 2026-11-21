@@ -1,0 +1,16 @@
+{
+  "challenge_module": "AesGcm.Statements",
+  "solution_module": "AesGcm.Proofs",
+  "theorem_names": [
+    "AesGcm.Statements.aes128gcm_encrypt_in_place_writes_ciphertext_and_tag_or_fails_without_room",
+    "AesGcm.Statements.aes128gcm_decrypt_in_place_writes_plaintext_or_rejects",
+    "AesGcm.Statements.aes256gcm_encrypt_in_place_writes_ciphertext_and_tag_or_fails_without_room",
+    "AesGcm.Statements.aes256gcm_decrypt_in_place_writes_plaintext_or_rejects"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

@@ -1,0 +1,4 @@
+# The portable backend the wrappers pin (`Sha1/program/.cargo/config.toml`), so that
+# `cargo run --release --locked > ../crate_generated.txt` reproduces the file byte for byte.
+[build]
+rustflags = ["--cfg", "sha1_backend=\"soft\""]

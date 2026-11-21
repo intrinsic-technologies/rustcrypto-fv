@@ -1,0 +1,157 @@
+name: Tests
+
+on:
+  workflow_dispatch:
+  # Path filters skip this workflow when no file it checks changed; within it, `ci/crates.py tests`
+  # selects the affected suites. Keep both lists equal to `python3 ci/crates.py paths tests`.
+  pull_request:
+    paths:
+      - 'lakefile.lean'
+      - 'lake-manifest.json'
+      - 'lean-toolchain'
+      - 'ci/crates.py'
+      - 'ci/comparator.py'
+      - '.github/workflows/crates.yml'
+      - 'Standards/Tests.lean'
+      - 'Standards/**/Vectors/**'
+      - '*/Tests/Vectors/**'
+      - '.github/workflows/tests.yml'
+      - 'Tests.lean'
+      - 'Standards.lean'
+      - 'Standards/**/*.lean'
+      - '*/Spec.lean'
+      - '*/Spec/**'
+      - '*/Tests.lean'
+      - '*/Tests/**'
+      - '*/lakefile.lean'
+      - '*/lake-manifest.json'
+      - '*/lean-toolchain'
+      - '*/TestDriver.lean'
+  push:
+    branches: [main]
+    paths:
+      - 'lakefile.lean'
+      - 'lake-manifest.json'
+      - 'lean-toolchain'
+      - 'ci/crates.py'
+      - 'ci/comparator.py'
+      - '.github/workflows/crates.yml'
+      - 'Standards/Tests.lean'
+      - 'Standards/**/Vectors/**'
+      - '*/Tests/Vectors/**'
+      - '.github/workflows/tests.yml'
+      - 'Tests.lean'
+      - 'Standards.lean'
+      - 'Standards/**/*.lean'
+      - '*/Spec.lean'
+      - '*/Spec/**'
+      - '*/Tests.lean'
+      - '*/Tests/**'
+      - '*/lakefile.lean'
+      - '*/lake-manifest.json'
+      - '*/lean-toolchain'
+      - '*/TestDriver.lean'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Run tests
+    runs-on:
+      - runs-on=${{ github.run_id }}-cpu/runner=16cpu-linux-x64/volume=80gb
+    timeout-minutes: 240
+    env:
+      # Lake's artifact cache (`enableArtifactCache` in lakefile.lean). Its entries are keyed by
+      # the hash of each module's source, imports, toolchain and options, so any changed module,
+      # here or in a dependency, is rebuilt rather than restored. Cache entries are keyed by the
+      # toolchain and dependency pins as well, so a bump of either starts from an empty cache.
+      LAKE_CACHE_DIR: ${{ github.workspace }}/.lake-cache
+    steps:
+      - name: Load dependency SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.LEAN_X86_DEPLOY_KEY }}
+            ${{ secrets.LEAN_X86_PROOFS_DEPLOY_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v6.1.0
+        with:
+          fetch-depth: 0
+
+      # Pull requests run the suites their changes affect; pushes to main and manual runs run all.
+      # A standalone crate (one with its own lakefile.lean) runs its suite in its own directory
+      - name: Select test suites
+        id: select
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          args=()
+          if [[ "$EVENT" == pull_request ]]; then args+=(--changed-since "origin/$BASE_REF"); fi
+          # Assigned unpiped, so a failing selection fails the step instead of selecting nothing
+          selected=$(python3 ci/crates.py tests "${args[@]}")
+          suites=() standalone=()
+          for suite in $selected; do
+            if [[ -f "$suite/lakefile.lean" ]]; then standalone+=("$suite"); else suites+=("$suite"); fi
+          done
+          echo "suites=${suites[*]}" >> "$GITHUB_OUTPUT"
+          echo "standalone=${standalone[*]}" >> "$GITHUB_OUTPUT"
+          echo "Selected: ${suites[*]:-none}; standalone crates: ${standalone[*]:-none}"
+
+      - name: Set up Lean
+        if: steps.select.outputs.suites != '' || steps.select.outputs.standalone != ''
+        uses: leanprover/lean-action@v1.6.0
+        with:
+          auto-config: "false"
+          build: "false"
+          test: "false"
+          use-mathlib-cache: "false"
+          use-github-cache: "false"
+
+      - name: Restore Lake artifact cache
+        id: cache
+        if: steps.select.outputs.suites != ''
+        uses: actions/cache/restore@v4.2.3
+        with:
+          path: ${{ env.LAKE_CACHE_DIR }}
+          key: lake-tests-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}-${{ github.sha }}
+          restore-keys: lake-tests-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}-
+
+      - name: Build test driver
+        if: steps.select.outputs.suites != ''
+        run: lake build tests
+
+      # Only runs on main write the cache, so pull requests cannot change what others restore
+      - name: Save Lake artifact cache
+        if: >-
+          steps.select.outputs.suites != '' && steps.cache.outputs.cache-hit != 'true' &&
+          github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/cache/save@v4.2.3
+        with:
+          path: ${{ env.LAKE_CACHE_DIR }}
+          key: ${{ steps.cache.outputs.cache-primary-key }}
+
+      # One test driver runs every selected suite; see Tests.lean and Standards/Tests.lean
+      - name: Tests
+        if: steps.select.outputs.suites != ''
+        env:
+          SUITES: ${{ steps.select.outputs.suites }}
+        run: |
+          read -ra suites <<< "$SUITES"
+          lake test -- "${suites[@]}"
+
+      # Each standalone crate builds its own pinned dependencies, without the cache above
+      - name: Standalone crate tests
+        if: steps.select.outputs.standalone != ''
+        env:
+          STANDALONE: ${{ steps.select.outputs.standalone }}
+        run: |
+          for crate in $STANDALONE; do
+            (cd "$crate" && LAKE_CACHE_DIR="$PWD/.lake/cache" lake test)
+          done

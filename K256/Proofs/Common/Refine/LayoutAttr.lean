@@ -1,0 +1,3 @@
+import Lean
+register_simp_attr refine_layout
+register_simp_attr refine_norm

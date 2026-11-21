@@ -1,0 +1,32 @@
+[package]
+name = "p256-program"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Standalone package: not part of any enclosing Cargo workspace
+[workspace]
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+# Every p256 feature that runs on x86-64 without the standard library, except
+# `precomputed-tables`: the defaults `arithmetic`, `ecdsa` (with `sha256` and `digest`) and `pem`,
+# plus `alloc`, `ecdh`, `getrandom`, `hash2curve`, `group-digest`, `oprf`, `pkcs8` and `serde`. The
+# default `std` is off because it needs an operating system. `precomputed-tables`, a default, is
+# off: with it, every call that multiplies by the base point reads and fills a lazily filled static
+# table, a written region no theorem's frame has; the specifications use no precomputed basepoint
+# table.
+# `alloc` uses the wrapper's bump allocator over the caller's heap (`src/arena.rs`); `getrandom`
+# uses getrandom's `custom` backend serving the caller's bytes
+p256 = { version = "=0.14.0", default-features = false, features = ["alloc", "arithmetic", "ecdh", "ecdsa", "getrandom", "group-digest", "hash2curve", "oprf", "pem", "pkcs8", "serde"] }
+# getrandom's custom backend (`__getrandom_v03_custom` in src/abi.rs, `.cargo/config.toml`)
+getrandom = { version = "=0.4.3", default-features = false }
+# The random-number traits of the caller-byte generator `abi::ByteRng`, for `SigningKey`'s
+# `Generate::generate_from_rng`
+rand_core = { version = "=0.10.1", default-features = false }
+
+# Cargo's default release profile, as downstream users build it, except that a panic aborts
+[profile.release]
+panic = "abort"
